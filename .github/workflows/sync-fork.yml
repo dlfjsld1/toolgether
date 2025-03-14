@@ -1,0 +1,41 @@
+name: Sync Fork
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, closed]
+    branches:
+      - main #메인 브랜치만 가져옴
+    paths-ignore:
+      - '**.md'
+      - '.github/**'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 포크된 레포지토리 체크아웃
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Git 설정
+        run: |
+          git config user.name "${{ github.event.pull_request.head.user.login }}"
+          git config user.email "${{ github.event.pull_request.head.user.email }}"
+
+      - name: 업스트림 리모트 추가
+        run: |
+          git remote add upstream "https://github.com/${{ github.event.pull_request.head.repo.full_name }}"
+          git fetch upstream
+
+      - name: 업스트림 변경 사항 병합
+        run: |
+          git checkout main # 본인 포크 레포지토리의 메인 브랜치 이름으로 변경하세요 (예: main)
+          git merge --ff upstream/main
+
+      - name: 포크 레포지토리로 변경 사항 푸시
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: main # 본인 포크 레포지토리의 메인 브랜치 이름으로 변경하세요 (예: main)
+          force: true # 필요하다면 강제 푸시 사용 (주의해서 사용하세요)
